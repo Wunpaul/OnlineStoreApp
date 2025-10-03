@@ -1,5 +1,6 @@
 package com.coffencode.onlinestoreapplication.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.util.List;
@@ -22,7 +23,8 @@ public class Customer {
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
     private List<Order> orders;
 
-    @OneToOne(mappedBy = "customer", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "customer", fetch = FetchType.LAZY)
+    @JsonIgnore
     private Cart cart;
 
     public Customer() {}

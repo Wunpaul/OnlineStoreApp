@@ -13,8 +13,8 @@ public class Cart {
     private Long id;
 
     // One customer can only have ONE cart
-    @OneToOne
-    @JoinColumn(name = "customer_id", nullable = false, unique = true)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id", nullable = true, unique = true)
     private Customer customer;
 
     // One cart can have many cart items
