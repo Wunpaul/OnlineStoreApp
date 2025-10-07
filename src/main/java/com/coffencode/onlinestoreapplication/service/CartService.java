@@ -3,8 +3,8 @@ package com.coffencode.onlinestoreapplication.service;
 import com.coffencode.onlinestoreapplication.dto.CartDTO;
 
 public interface CartService {
-    CartDTO createCart(Long customerId);
-    CartDTO getCartByCustomer(Long customerId);
-    void clearCart(Long cartId);
-    CartDTO addItemToCart(Long customerId, Long productId, Integer quantity);
+    CartDTO addItemToCartByEmail(String email, Long productId, int quantity);
+    CartDTO getCartByCustomerEmail(String email);
+    CartDTO createCartForCustomerEmail(String email);
+    void clearCartByCustomerEmail(String email);
 }

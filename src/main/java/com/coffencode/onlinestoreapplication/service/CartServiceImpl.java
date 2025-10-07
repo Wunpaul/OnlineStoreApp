@@ -5,89 +5,106 @@ import com.coffencode.onlinestoreapplication.entities.Cart;
 import com.coffencode.onlinestoreapplication.entities.CartItem;
 import com.coffencode.onlinestoreapplication.entities.Customer;
 import com.coffencode.onlinestoreapplication.entities.Product;
-import com.coffencode.onlinestoreapplication.exceptions.CartNotFoundException;
-import com.coffencode.onlinestoreapplication.exceptions.ProductNotFoundException;
+import com.coffencode.onlinestoreapplication.exceptions.ResourceNotFoundException;
 import com.coffencode.onlinestoreapplication.mapper.CartMapper;
 import com.coffencode.onlinestoreapplication.repositories.CartRepository;
 import com.coffencode.onlinestoreapplication.repositories.CustomerRepository;
 import com.coffencode.onlinestoreapplication.repositories.ProductRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
-import jakarta.transaction.Transactional;
 import java.util.Optional;
 
 @Service
 public class CartServiceImpl implements CartService {
 
-    private final CartRepository cartRepository;
     private final CustomerRepository customerRepository;
+    private final CartRepository cartRepository;
     private final ProductRepository productRepository;
 
-    public CartServiceImpl(CartRepository cartRepository,
-                           CustomerRepository customerRepository,
+    public CartServiceImpl(CustomerRepository customerRepository,
+                           CartRepository cartRepository,
                            ProductRepository productRepository) {
-        this.cartRepository = cartRepository;
         this.customerRepository = customerRepository;
+        this.cartRepository = cartRepository;
         this.productRepository = productRepository;
     }
 
     @Override
-    public CartDTO createCart(Long customerId) {
-        Customer c = customerRepository.findById(customerId).orElseThrow(() -> new RuntimeException("Customer not found"));
-        Optional<Cart> existing = cartRepository.findByCustomerId(customerId);
-        if (existing.isPresent()) return CartMapper.toDTO(existing.get());
-        Cart cart = new Cart();
-        cart.setCustomer(c);
-        Cart saved = cartRepository.save(cart);
-        return CartMapper.toDTO(saved);
-    }
-
-    @Override
-    public CartDTO getCartByCustomer(Long customerId) {
-        return cartRepository.findByCustomerId(customerId).map(CartMapper::toDTO)
-                .orElseThrow(() -> new CartNotFoundException(customerId));
-    }
-
-    @Override
     @Transactional
-    public void clearCart(Long cartId) {
-        Cart cart = cartRepository.findById(cartId).orElseThrow(() -> new CartNotFoundException(cartId));
-        cart.getCartItems().clear();
-        cartRepository.save(cart);
-    }
+    public CartDTO addItemToCartByEmail(String email, Long productId, int quantity) {
+        Customer customer = customerRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + email));
 
-    @Override
-    @Transactional
-    public CartDTO addItemToCart(Long customerId, Long productId, Integer quantity) {
-        if (quantity == null || quantity <= 0) throw new IllegalArgumentException("Quantity must be > 0");
+        Cart cart = cartRepository.findByCustomerId(customer.getId())
+                .orElseGet(() -> {
+                    Cart c = new Cart();
+                    c.setCustomer(customer);
+                    Cart saved = cartRepository.save(c);
+                    customer.setCart(saved);
+                    customerRepository.save(customer);
+                    return saved;
+                });
 
-        Cart cart = cartRepository.findByCustomerId(customerId).orElseGet(() -> {
-            Customer c = customerRepository.findById(customerId).orElseThrow(() -> new RuntimeException("Customer not found"));
-            Cart newCart = new Cart();
-            newCart.setCustomer(c);
-            return cartRepository.save(newCart);
-        });
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + productId));
 
-        Product product = productRepository.findById(productId).orElseThrow(() -> new ProductNotFoundException(productId));
-        if (product.getQuantity() != null && product.getQuantity() < quantity) {
-            throw new IllegalArgumentException("Not enough stock for product id " + productId);
-        }
-
+        // Try to find existing cart item for this product in the cart
         Optional<CartItem> existing = cart.getCartItems().stream()
-                .filter(ci -> ci.getProduct() != null && productId.equals(ci.getProduct().getId()))
+                .filter(ci -> ci.getProduct().getId().equals(productId))
                 .findFirst();
 
         if (existing.isPresent()) {
             CartItem item = existing.get();
             item.setQuantity(item.getQuantity() + quantity);
         } else {
-            CartItem item = new CartItem();
-            item.setProduct(product);
-            item.setQuantity(quantity);
-            cart.addCartItem(item);
+            CartItem newItem = new CartItem();
+            newItem.setProduct(product);
+            newItem.setQuantity(quantity);
+            cart.addCartItem(newItem);
         }
 
         Cart saved = cartRepository.save(cart);
         return CartMapper.toDTO(saved);
     }
+
+    @Override
+    public CartDTO getCartByCustomerEmail(String email) {
+        Customer customer = customerRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + email));
+        Cart cart = cartRepository.findByCustomerId(customer.getId())
+                .orElseGet(() -> {
+                    // create empty cart if not present
+                    Cart c = new Cart();
+                    c.setCustomer(customer);
+                    Cart saved = cartRepository.save(c);
+                    customer.setCart(saved);
+                    customerRepository.save(customer);
+                    return saved;
+                });
+        return CartMapper.toDTO(cart);
+    }
+
+    @Override
+    public CartDTO createCartForCustomerEmail(String email) {
+        Customer customer = customerRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + email));
+        Cart c = new Cart();
+        c.setCustomer(customer);
+        Cart saved = cartRepository.save(c);
+        customer.setCart(saved);
+        customerRepository.save(customer);
+        return CartMapper.toDTO(saved);
+    }
+
+    @Override
+    public void clearCartByCustomerEmail(String email) {
+        Customer customer = customerRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + email));
+        Cart cart = cartRepository.findByCustomerId(customer.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found for customer: " + email));
+        cart.getCartItems().clear();
+        cartRepository.save(cart);
+    }
+
 }
