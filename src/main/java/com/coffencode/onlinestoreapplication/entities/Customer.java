@@ -23,7 +23,7 @@ public class Customer {
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
     private List<Order> orders;
 
-    @OneToOne(mappedBy = "customer", fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "customer", fetch = FetchType.LAZY, orphanRemoval = true)
     @JsonIgnore
     private Cart cart;
 

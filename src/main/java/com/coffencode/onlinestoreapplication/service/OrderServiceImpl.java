@@ -35,9 +35,13 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public OrderDTO createOrderFromCart(Long customerId) {
-        Cart cart = cartRepository.findByCustomerId(customerId).orElseThrow(() -> new CartNotFoundException(customerId));
-        if (cart.getCartItems() == null || cart.getCartItems().isEmpty()) throw new EmptyCartException(customerId);
+    public OrderDTO createOrderFromCartByEmail(String email) {
+        System.out.println("Reached createdOrderFromCartByEmail for: " + email);
+        Cart cart = cartRepository.findByCustomerEmail(email)
+                .orElseThrow(() -> new CartNotFoundException(email));
+        System.out.println("🛒 Cart found: " + cart.getId() + " | Items: " + cart.getCartItems().size());
+        if (cart.getCartItems() == null || cart.getCartItems().isEmpty())
+            throw new EmptyCartException(cart.getId());
 
         Order order = new Order();
         order.setCustomer(cart.getCustomer());
@@ -48,20 +52,21 @@ public class OrderServiceImpl implements OrderService {
             Product p = ci.getProduct();
             Integer available = p.getQuantity() == null ? 0 : p.getQuantity();
             if (available < ci.getQuantity()) throw new InsufficientStockException(p.getId());
-            // deduct stock
             p.setQuantity(available - ci.getQuantity());
             productRepository.save(p);
 
-            OrderItem oi = new OrderItem(order, p, ci.getQuantity(), p.getPrice()); // snapshot price
+            OrderItem oi = new OrderItem(order, p, ci.getQuantity(), p.getPrice());
             order.addOrderItem(oi);
         }
 
-        double total = order.getOrderItems().stream().mapToDouble(i -> i.getPrice() * i.getQuantity()).sum();
+        double total = order.getOrderItems().stream()
+                .mapToDouble(i -> i.getPrice() * i.getQuantity())
+                .sum();
         order.setTotalAmount(total);
 
         Order saved = orderRepository.save(order);
 
-        // clear cart
+        // Clear cart after checkout
         cart.getCartItems().clear();
         cartRepository.save(cart);
 

@@ -36,10 +36,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = null;
         String username = null;
 
+        //temporary lines for testing
+        logger.info("Incoming request to: {}", request.getRequestURI());
+        logger.info("Incoming Authorization Header: {}", authHeader);
+
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
             try {
                 username = jwtUtil.extractUsername(token);
+                logger.info("Extracted username from token: {}", username);
             } catch (Exception ex) {
                 logger.debug("Failed to extract username from JWT: {}", ex.getMessage());
             }
@@ -54,6 +59,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                    logger.info("JWT Authentication set for user: {}", userDetails.getUsername());
                 }
             } catch (Exception ex) {
                 logger.debug("JWT authentication failed: {}", ex.getMessage());

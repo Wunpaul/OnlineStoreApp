@@ -3,6 +3,8 @@ package com.coffencode.onlinestoreapplication.controllers;
 import com.coffencode.onlinestoreapplication.dto.OrderDTO;
 import com.coffencode.onlinestoreapplication.service.OrderService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,9 +18,10 @@ public class OrderController {
     public OrderController(OrderService service) { this.service = service; }
 
     // checkout/cart -> order
-    @PostMapping("/checkout/{customerId}")
-    public ResponseEntity<OrderDTO> checkout(@PathVariable Long customerId) {
-        OrderDTO created = service.createOrderFromCart(customerId);
+    @PostMapping("/checkout")
+    public ResponseEntity<OrderDTO> checkout(@AuthenticationPrincipal UserDetails userDetails) {
+        String email = userDetails.getUsername();
+        OrderDTO created = service.createOrderFromCartByEmail(email);
         return ResponseEntity.ok(created);
     }
 
