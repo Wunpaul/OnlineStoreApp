@@ -8,6 +8,7 @@ public class CustomerDTO {
     private String name;
     private String email;
     private Long cartId;
+    private String role;
     private List<Long> orderIds = new ArrayList<>();
 
     public Long getId() { return id; }
@@ -21,6 +22,9 @@ public class CustomerDTO {
 
     public Long getCartId() { return cartId; }
     public void setCartId(Long cartId) { this.cartId = cartId; }
+
+    public String grtRole() { return role; }
+    public void setRole(String role) { this.role = role; }
 
     public List<Long> getOrderIds() { return orderIds; }
     public void setOrderIds(List<Long> orderIds) { this.orderIds = orderIds; }

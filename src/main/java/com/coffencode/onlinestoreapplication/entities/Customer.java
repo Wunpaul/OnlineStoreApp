@@ -27,6 +27,10 @@ public class Customer {
     @JsonIgnore
     private Cart cart;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
+    private Role role;
+
     public Customer() {}
 
     public Customer(String name, String email, String password) {
@@ -74,4 +78,7 @@ public class Customer {
     public void setCart(Cart cart) {
         this.cart = cart;
     }
+
+    public Role getRole() {return role; }
+    public void setRole(Role role) {this.role = role; }
 }

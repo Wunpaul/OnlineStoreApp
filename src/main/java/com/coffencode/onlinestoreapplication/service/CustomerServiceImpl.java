@@ -3,10 +3,12 @@ package com.coffencode.onlinestoreapplication.service;
 import com.coffencode.onlinestoreapplication.dto.*;
 import com.coffencode.onlinestoreapplication.entities.Cart;
 import com.coffencode.onlinestoreapplication.entities.Customer;
+import com.coffencode.onlinestoreapplication.entities.Role;
 import com.coffencode.onlinestoreapplication.exceptions.CustomerNotFoundException;
 import com.coffencode.onlinestoreapplication.mapper.CustomerMapper;
 import com.coffencode.onlinestoreapplication.repositories.CartRepository;
 import com.coffencode.onlinestoreapplication.repositories.CustomerRepository;
+import com.coffencode.onlinestoreapplication.repositories.RoleRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,13 +22,16 @@ public class CustomerServiceImpl implements CustomerService {
     private final CustomerRepository customerRepository;
     private final CartRepository cartRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RoleRepository roleRepository;
 
     public CustomerServiceImpl(CustomerRepository customerRepository,
                                CartRepository cartRepository,
-                               PasswordEncoder passwordEncoder) {
+                               PasswordEncoder passwordEncoder,
+                               RoleRepository roleRepository) {
         this.customerRepository = customerRepository;
         this.cartRepository = cartRepository;
         this.passwordEncoder = passwordEncoder;
+        this.roleRepository = roleRepository;
     }
 
     // -------------------------
@@ -41,6 +46,11 @@ public class CustomerServiceImpl implements CustomerService {
         c.setName(name);
         c.setEmail(email);
         c.setPassword(passwordEncoder.encode(rawPassword));
+
+        // Assign default role
+        Role defaultRole = roleRepository.findByName("ROLE_CUSTOMER")
+                .orElseThrow(() -> new RuntimeException("Default role not found. Please seed ROLE_CUSTOMER in the database."));
+        c.setRole(defaultRole);
 
         // Save customer to get id
         Customer saved = customerRepository.save(c);
