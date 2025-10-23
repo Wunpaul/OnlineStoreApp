@@ -18,13 +18,11 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         Customer customer = customerRepository.findByEmail(email)
-                .orElseThrow(()  -> new UsernameNotFoundException("Customer not found with email: " + email));
+                .orElseThrow(() -> new UsernameNotFoundException("Customer not found with email: " + email));
 
-        //Spring Security's User object
-        return User.builder()
-                .username(customer.getEmail())
-                .password(customer.getPassword())
-                .roles("USER")
-                .build();
+        // ✅ Use the actual role name from your Role entity
+        String roleName = customer.getRole() != null ? customer.getRole().getName().replace("ROLE_", "") : "CUSTOMER";
+
+        return new CustomerDetails(customer);
     }
 }

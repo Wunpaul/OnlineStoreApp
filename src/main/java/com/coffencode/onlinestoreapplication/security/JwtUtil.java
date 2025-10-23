@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +25,7 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private long jwtExpirationMs;         // expiration in milliseconds
 
-    // Build signing key. First try to decode base64; if that fails, use raw bytes.
+    // ✅ Build signing key. First try to decode base64; if that fails, use raw bytes.
     private Key getSigningKey() {
         try {
             byte[] keyBytes = Base64.getDecoder().decode(jwtSecret);
@@ -36,14 +37,24 @@ public class JwtUtil {
         }
     }
 
-    // Generate a token using username (we'll use customer's email as username)
+    // ✅ Generate token (adds user's role into JWT claims)
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
-        // optionally add claims like roles if you want:
-        // claims.put("roles", userDetails.getAuthorities());
+
+        // Extract the user's role (Spring adds ROLE_ prefix automatically)
+        String role = userDetails.getAuthorities()
+                .stream()
+                .findFirst()
+                .map(GrantedAuthority::getAuthority)
+                .orElse("ROLE_CUSTOMER");
+
+        // Add role claim so frontend can decode it later
+        claims.put("role", role);
+
         return createToken(claims, userDetails.getUsername());
     }
 
+    // ✅ Create the signed JWT
     private String createToken(Map<String, Object> claims, String subject) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + jwtExpirationMs);
@@ -57,12 +68,17 @@ public class JwtUtil {
                 .compact();
     }
 
-    // Extract username (subject) from token
+    // ✅ Extract username (subject) from token
     public String extractUsername(String token) {
         return extractAllClaims(token).getSubject();
     }
 
-    // Validate token against user details
+    // ✅ Extract role from token (useful for debugging / filters)
+    public String extractRole(String token) {
+        return (String) extractAllClaims(token).get("role");
+    }
+
+    // ✅ Validate token against user details
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
